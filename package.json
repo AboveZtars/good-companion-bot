@@ -1,0 +1,17 @@
+{
+  "name": "good-companion-bot",
+  "version": "1.0.0",
+  "description": "A friendly bot ",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "aboveztars",
+  "license": "MIT",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.61.0"
+  },
+  "devDependencies": {
+    "@types/node-telegram-bot-api": "^0.61.6"
+  }
+}
