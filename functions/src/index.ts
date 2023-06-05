@@ -31,24 +31,28 @@ export const sendMessage = onRequest(async (request, response) => {
 
     bot.sendMessage(
       chatId,
-      "Hello I'm your good companion, you can call me MEI"
-    );
-    bot.sendMessage(
-      chatId,
-      `Right now I'm not very smart that's why I need you to tell me 
+      `Hello I'm your good companion, you can call me MEI.
+      Right now I'm not very smart that's why I need you to tell me 
       the hour and days you want me to give you 
-      the good morning and good nights`
+      the good morning and good nights 
+      Like this: hour: 09:00, days: alldays`
     );
-    bot.sendMessage(chatId, "Like this:");
-    bot.sendMessage(chatId, "hour: 9:00, days:alldays");
   } else {
-    const messageText = request.body.message.text;
+    // Extract frequency and hour of reminder
+    const messageText: string = request.body.message.text;
+    const hour = messageText.match(/([0-1]?[0-9]|2[0-3]):[0-5][0-9]/g);
+
+    if (hour) {
+      logger.info(`Hour: ${hour[0]}`, {structuredData: true});
+    }
+
     if (messageText) {
       // Order in this please
       const docId = chatDocument.docs[0].id;
       const raw = JSON.stringify({
         chatId: chatId,
         docId: docId,
+        hour: hour![0],
       });
       const requestOptions = {
         method: "POST",
@@ -90,12 +94,16 @@ export const createReminder = onRequest(async (request, response) => {
 
   const reminderAppDocuments = await db.collection("reminderapp").get();
   const reminderAppId = reminderAppDocuments.docs[0].data().id;
-  logger.info(`reminderappid: ${reminderAppId}`, {structuredData: true});
-
-  const reminderRes = await addReminder(reminderToken.value(), reminderAppId);
-  const reminderBody = JSON.parse(reminderRes);
   const body = JSON.parse(request.body);
+  const {hour} = body;
   const docId = body.docId;
+
+  const reminderRes = await addReminder(
+    reminderToken.value(),
+    reminderAppId,
+    hour
+  );
+  const reminderBody = JSON.parse(reminderRes);
   // const chatId = body.chatId;
   // const bot = new TelegramBot(telegramToken.value());
   // bot.sendMessage(chatId, `Hey ${docId}`);

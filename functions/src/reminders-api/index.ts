@@ -1,3 +1,5 @@
+import * as logger from "firebase-functions/logger";
+
 const url = "https://reminders-api.com/api/";
 
 export const createReminderApp = async (token: string) => {
@@ -20,12 +22,31 @@ export const createReminderApp = async (token: string) => {
   return resp.text();
 };
 
-export const addReminder = async (token: string, appId: string) => {
+export const addReminder = async (
+  token: string,
+  appId: string,
+  hour: string
+) => {
+  // Format Date
+  const todayDate = new Date();
+  const day = todayDate.getDate() + 1;
+  let month: string | number = todayDate.getMonth() + 1;
+  if (month < 10) {
+    month = `0${month}`;
+  }
+  const year = todayDate.getFullYear();
+  // Frequency
+  const freq = "FREQ=DAILY;INTERVAL=1";
+
+  const todayDateFormatted = `${year}-${month}-${day}`;
+  logger.info(`Date ${todayDateFormatted}`, {structuredData: true});
+
   const raw = JSON.stringify({
     title: "Good day reminder",
     timezone: "America/Caracas",
-    date_tz: "2023-05-24",
-    time_tz: "15:30",
+    date_tz: todayDateFormatted,
+    time_tz: hour,
+    rrule: freq,
   });
 
   const requestOptions = {
