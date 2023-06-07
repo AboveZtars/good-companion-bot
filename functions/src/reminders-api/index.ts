@@ -29,8 +29,11 @@ export const addReminder = async (
 ) => {
   // Format Date
   const todayDate = new Date();
-  const day = todayDate.getDate() + 1;
+  let day: string | number = todayDate.getDate() + 1;
   let month: string | number = todayDate.getMonth() + 1;
+  if (day < 10) {
+    day = `0${day}`;
+  }
   if (month < 10) {
     month = `0${month}`;
   }
