@@ -6,10 +6,18 @@ import {defineString} from "firebase-functions/params";
 import {initializeApp} from "firebase-admin/app";
 import {getFirestore} from "firebase-admin/firestore";
 import {addReminder, createReminderApp} from "./reminders-api";
+import {ChatOpenAI} from "langchain/chat_models/openai";
+import {
+  SystemMessagePromptTemplate,
+  HumanMessagePromptTemplate,
+  ChatPromptTemplate,
+} from "langchain/prompts";
+import {LLMChain} from "langchain/chains";
 
 initializeApp();
 const telegramToken = defineString("TOKEN");
 const reminderToken = defineString("REMINDERTOKEN");
+const openAIApiKey = defineString("OPENAI_API_KEY");
 
 const db = getFirestore();
 
@@ -18,6 +26,10 @@ export const sendMessage = onRequest(async (request, response) => {
   const chatId = request.body.message.chat.id;
   // Create a Telegram bot
   const bot = new TelegramBot(telegramToken.value());
+  const chat = new ChatOpenAI({
+    temperature: 0.9,
+    openAIApiKey: openAIApiKey.value(),
+  });
 
   const chatDocument = await db
     .collection("chats")
@@ -32,11 +44,32 @@ export const sendMessage = onRequest(async (request, response) => {
     bot.sendMessage(
       chatId,
       `Hello I'm your good companion, you can call me MEI.
-      Right now I'm not very smart that's why I need you to tell me 
+      Right now I'm kinda smart that's why I need you to tell me 
       the hour you want me to send you 
       a message every day. 
       Like this: hour: 09:00`
     );
+
+    // Send message to OpenAI using chain
+    const userPrompt = ChatPromptTemplate.fromPromptMessages([
+      SystemMessagePromptTemplate.fromTemplate(
+        `You are MEI:
+        Mindful Encouragement Interface: MEI is a companion bot 
+        that's focused on promoting mindfulness and well-being, 
+        it is also a very friendly bot. 
+        Whether you're feeling stressed, anxious, or just 
+        need some motivation, MEI can help you stay on track and achieve 
+        your goals.`
+      ),
+      HumanMessagePromptTemplate.fromTemplate("{text}"),
+    ]);
+    const chain = new LLMChain({
+      prompt: userPrompt,
+      llm: chat,
+    });
+    const responseChatGPT = await chain.run(request.body.message.text);
+
+    bot.sendMessage(chatId, responseChatGPT);
   } else {
     // Extract frequency and hour of reminder
     const messageText: string = request.body.message.text;
@@ -62,18 +95,37 @@ export const sendMessage = onRequest(async (request, response) => {
         Now send me the message you want me to send you every day.
         Like this: message: Hello, have a good day!`
       );
-    }
-
-    if (greetingMessage) {
+    } else if (greetingMessage) {
       await db
         .collection("chats")
         .doc(docId)
         .set({message: greetingMessage}, {merge: true});
       bot.sendMessage(chatId, "Message set!! ^^");
+    } else {
+      // Send message to OpenAI using chain
+      const userPrompt = ChatPromptTemplate.fromPromptMessages([
+        SystemMessagePromptTemplate.fromTemplate(
+          `You are MEI:
+        Mindful Encouragement Interface: MEI is a companion bot 
+        that's focused on promoting mindfulness and well-being, 
+        it is also a very friendly bot. 
+        Whether you're feeling stressed, anxious, or just 
+        need some motivation, MEI can help you stay on track and achieve 
+        your goals.`
+        ),
+        HumanMessagePromptTemplate.fromTemplate("{text}"),
+      ]);
+      const chain = new LLMChain({
+        prompt: userPrompt,
+        llm: chat,
+      });
+      const responseChatGPT = await chain.run(messageText);
+
+      bot.sendMessage(chatId, responseChatGPT);
     }
   }
 
-  response.send(200);
+  response.sendStatus(200);
 });
 
 export const createScheduleApp = onRequest(async (request, response) => {
