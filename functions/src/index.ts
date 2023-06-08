@@ -1,32 +1,68 @@
 import {onRequest} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import TelegramBot from "node-telegram-bot-api";
 import {defineString} from "firebase-functions/params";
 // The Firebase Admin SDK to access Firestore.
 import {initializeApp} from "firebase-admin/app";
 import {getFirestore} from "firebase-admin/firestore";
+// Reminders API
 import {addReminder, createReminderApp} from "./reminders-api";
+// Langchain
 import {ChatOpenAI} from "langchain/chat_models/openai";
 import {
   SystemMessagePromptTemplate,
   HumanMessagePromptTemplate,
   ChatPromptTemplate,
+  MessagesPlaceholder,
 } from "langchain/prompts";
-import {LLMChain} from "langchain/chains";
+import {ConversationChain} from "langchain/chains";
+import {BufferMemory} from "langchain/memory";
+import {MomentoChatMessageHistory} from "langchain/stores/message/momento";
+// momento cache
+import {CacheClient, Configurations, CredentialProvider} from "@gomomento/sdk";
+// Telegram
+import TelegramBot from "node-telegram-bot-api";
 
-initializeApp();
+// ENV Vars
 const telegramToken = defineString("TOKEN");
 const reminderToken = defineString("REMINDERTOKEN");
 const openAIApiKey = defineString("OPENAI_API_KEY");
+const momentoApiKey = defineString("MOMENTO_API_KEY");
 
+// Initialize stuff
+initializeApp();
 const db = getFirestore();
 
 export const sendMessage = onRequest(async (request, response) => {
   logger.info("sendMessage called", {structuredData: true});
-  const chatId = request.body.message.chat.id;
+  const chatId: number = request.body.message.chat.id;
   // Create a Telegram bot
   const bot = new TelegramBot(telegramToken.value());
+
+  // Create a unique session ID meanwhile with the date
+  const sessionId = "telegram";
+  const cacheName = chatId.toString();
+
+  const momentoClient = new CacheClient({
+    configuration: Configurations.Laptop.v1(),
+    credentialProvider: CredentialProvider.fromString({
+      authToken: momentoApiKey.value(),
+    }),
+    defaultTtlSeconds: 60 * 60 * 24,
+  });
+  const memory = new BufferMemory({
+    chatHistory: await MomentoChatMessageHistory.fromProps({
+      client: momentoClient,
+      cacheName,
+      sessionId,
+      sessionTtl: 300,
+    }),
+    returnMessages: true,
+    memoryKey: "history",
+  });
+  await memory.loadMemoryVariables({});
+
   const chat = new ChatOpenAI({
+    modelName: "gpt-3.5-turbo",
     temperature: 0.9,
     openAIApiKey: openAIApiKey.value(),
   });
@@ -59,17 +95,22 @@ export const sendMessage = onRequest(async (request, response) => {
         it is also a very friendly bot. 
         Whether you're feeling stressed, anxious, or just 
         need some motivation, MEI can help you stay on track and achieve 
-        your goals.`
+        your goals.
+        Has a bot you will have access 
+        `
       ),
       HumanMessagePromptTemplate.fromTemplate("{text}"),
     ]);
-    const chain = new LLMChain({
+    const chain = new ConversationChain({
       prompt: userPrompt,
       llm: chat,
     });
-    const responseChatGPT = await chain.run(request.body.message.text);
+    chain;
+    const responseChatGPT2 = await chain.run({
+      input: request.body.message.text,
+    });
 
-    bot.sendMessage(chatId, responseChatGPT);
+    bot.sendMessage(chatId, responseChatGPT2);
   } else {
     // Extract frequency and hour of reminder
     const messageText: string = request.body.message.text;
@@ -106,22 +147,32 @@ export const sendMessage = onRequest(async (request, response) => {
       const userPrompt = ChatPromptTemplate.fromPromptMessages([
         SystemMessagePromptTemplate.fromTemplate(
           `You are MEI:
-        Mindful Encouragement Interface: MEI is a companion bot 
-        that's focused on promoting mindfulness and well-being, 
-        it is also a very friendly bot. 
-        Whether you're feeling stressed, anxious, or just 
-        need some motivation, MEI can help you stay on track and achieve 
-        your goals.`
+          Mindful Encouragement Interface: MEI is a companion bot 
+          that's focused on promoting mindfulness and well-being, 
+          is talkative and provides lots of 
+          specific details from its context. If MEI does not know the 
+          answer to a question, it truthfully says it does not know. 
+          Whether you're feeling stressed, anxious, or just 
+          need some motivation, MEI can help you stay on track and achieve 
+          your goals.
+          The following is a friendly conversation you just had with a 
+          human.
+          `
         ),
+        new MessagesPlaceholder("history"),
         HumanMessagePromptTemplate.fromTemplate("{text}"),
       ]);
-      const chain = new LLMChain({
+      const chain = new ConversationChain({
         prompt: userPrompt,
         llm: chat,
+        memory: memory,
       });
-      const responseChatGPT = await chain.run(messageText);
 
-      bot.sendMessage(chatId, responseChatGPT);
+      const responseChatGPT = await chain.call({
+        text: messageText,
+      });
+
+      bot.sendMessage(chatId, responseChatGPT.response);
     }
   }
 
