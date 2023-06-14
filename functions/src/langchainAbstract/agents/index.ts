@@ -7,6 +7,7 @@ import {BufferMemory} from "langchain/memory";
 import {MomentoChatMessageHistory} from "langchain/stores/message/momento";
 // momento cache
 import {CacheClient, Configurations, CredentialProvider} from "@gomomento/sdk";
+import * as logger from "firebase-functions/logger";
 
 const openAIApiKey = defineString("OPENAI_API_KEY");
 const momentoApiKey = defineString("MOMENTO_API_KEY");
@@ -38,13 +39,14 @@ export class Agent {
    */
   async runDefaultAgent(
     prompt: string,
-    chatId?: string,
+    chatId: string,
     appId?: string,
     hour?: string,
     docId?: string
   ): Promise<string> {
-    const sessionId = "telegram";
-    const cacheName = "default";
+    const sessionId = "MEISTM"; // Mei short term memory
+    const cacheName = chatId;
+    logger.info("runDefaultAgent", {structuredData: true});
 
     const momentoClient = new CacheClient({
       configuration: Configurations.Laptop.v1(),
@@ -66,6 +68,7 @@ export class Agent {
     });
     // test
     await memory.loadMemoryVariables({});
+    logger.info("Despues de declarar momento", {structuredData: true});
 
     const executor = await initializeAgentExecutorWithOptions(
       this.tools.reminderTools(prompt, appId, hour, docId),
@@ -84,30 +87,9 @@ export class Agent {
         memory: memory,
       }
     );
+    logger.info("declarar executor", {structuredData: true});
+
     const resp = await executor.call({input: prompt});
     return resp.output; // This is a json string
   }
-
-  /**
-   * Add a reminder to the database.
-   * @param {string} appId The id of the app.
-   * @param {string} hour The hour of the daily reminder.
-   * @param {string} docId The id of the document to save the reminder to.
-   * @return {Promise<string>} The output of the agent.
-   */
-  // async addReminder(
-  //   appId: string,
-  //   hour: string,
-  //   docId: string
-  // ): Promise<string> {
-  //   const executor = await initializeAgentExecutorWithOptions(
-  //     this.tools.reminderTools(appId, hour, docId),
-  //     this.model,
-  //     {
-  //       agentType: "zero-shot-react-description",
-  //     }
-  //   );
-  //   const resp = await executor.call({input: "Set a reminder"});
-  //   return resp.output; // This is a json string
-  // }
 }

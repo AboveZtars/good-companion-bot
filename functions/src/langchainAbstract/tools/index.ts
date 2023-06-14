@@ -21,15 +21,17 @@ export class Tools {
     hour?: string,
     docId?: string
   ): DynamicTool[] {
+    let input: string;
+    if (appId && hour && docId) {
+      input = `${appId},${hour},${docId}`;
+    } else {
+      input = `${appId},01:30,${docId}`;
+    }
+
     return [
-      // new DynamicTool({
-      //   name: "answerHuman",
-      //   description: `call this to answer a human. input should be ${prompt}`,
-      //   func: answerHuman,
-      // }),
       new DynamicTool({
         name: "addReminder",
-        description: `call this to set a reminder. input should be ${appId},${hour},${docId}`,
+        description: `call this to set a reminder. input should be ${input}`,
         func: addReminder,
       }),
     ];
