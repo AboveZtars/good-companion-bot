@@ -7,7 +7,6 @@ import {BufferMemory} from "langchain/memory";
 import {MomentoChatMessageHistory} from "langchain/stores/message/momento";
 // momento cache
 import {CacheClient, Configurations, CredentialProvider} from "@gomomento/sdk";
-import * as logger from "firebase-functions/logger";
 
 const openAIApiKey = defineString("OPENAI_API_KEY");
 const momentoApiKey = defineString("MOMENTO_API_KEY");
@@ -45,8 +44,7 @@ export class Agent {
     docId?: string
   ): Promise<string> {
     const sessionId = "MEISTM"; // Mei short term memory
-    const cacheName = chatId;
-    logger.info("runDefaultAgent", {structuredData: true});
+    const cacheName = chatId.toString();
 
     const momentoClient = new CacheClient({
       configuration: Configurations.Laptop.v1(),
@@ -66,9 +64,7 @@ export class Agent {
       returnMessages: true,
       memoryKey: "chat_history",
     });
-    // test
     await memory.loadMemoryVariables({});
-    logger.info("Despues de declarar momento", {structuredData: true});
 
     const executor = await initializeAgentExecutorWithOptions(
       this.tools.reminderTools(prompt, appId, hour, docId),
@@ -79,17 +75,21 @@ export class Agent {
           systemMessage: `You are MEI:
           Mindful Encouragement Interface: MEI is a companion bot 
           that's focused on promoting mindfulness and well-being, 
-          it is also a very friendly bot. 
+          it is also a very friendly bot who speaks both spanish and english. 
           Whether you're feeling stressed, anxious, or just 
           need some motivation, MEI can help you stay on track and achieve 
-          your goals.`,
+          your goals.
+          You have multiple features:
+          1. You can be ask to set a reminder in a specific hour of the day.
+          The first time you talk with someone say your features and a friendly 
+          message
+          `,
         },
         memory: memory,
       }
     );
-    logger.info("declarar executor", {structuredData: true});
 
     const resp = await executor.call({input: prompt});
-    return resp.output; // This is a json string
+    return resp.output;
   }
 }

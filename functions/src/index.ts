@@ -14,9 +14,9 @@ const telegramToken = defineString("TOKEN");
 
 const db = getFirestore(firebaseApp);
 
-export const sendMessage = onRequest(async (request, response) => {
+export const sendMessages = onRequest(async (request, response) => {
   logger.info("sendMessage called", {structuredData: true});
-  const chatId = request.body.message.chat.id;
+  const chatId: string = request.body.message.chat.id;
   const text = request.body.message.text;
   // Create a Telegram bot
   const bot = new TelegramBot(telegramToken.value());
@@ -29,15 +29,6 @@ export const sendMessage = onRequest(async (request, response) => {
     // TODO create function to add chatId to firestore
     const result = await db.collection("chats").add({chatId: chatId});
     logger.info(`Chat Id saved in doc: ${result.id}`, {structuredData: true});
-
-    bot.sendMessage(
-      chatId,
-      `Hello I'm your good companion, you can call me MEI.
-      Right now I'm kinda smart that's why I need you to tell me 
-      the hour you want me to send you 
-      a message every day. 
-      Like this: hour: 09:00`
-    );
   }
 
   // TODO create agent to set the message: const greetingMessage = messageText.match(/message:\s*(.*)/g);
@@ -47,6 +38,7 @@ export const sendMessage = onRequest(async (request, response) => {
   // TODO    .doc(docId)
   // TODO    .set({message: greetingMessage}, {merge: true});
   // TODO  bot.sendMessage(chatId, "Message set!! ^^");
+
   const hourMatch: string[] | undefined = text.match(
     /([0-1]?[0-9]|2[0-3]):[0-5][0-9]/g
   );
@@ -87,32 +79,6 @@ export const sendMessage = onRequest(async (request, response) => {
 //     .collection("chats")
 //     .doc(docId)
 //     .set({reminderApp: reminderBody}, {merge: true});
-
-//   logger.info(`result saved in doc: ${docId}`, {structuredData: true});
-
-//   response.send(200);
-// });
-
-// export const createReminder = onRequest(async (request, response) => {
-//   logger.info("createReminder called", {structuredData: true});
-
-//   const reminderAppDocuments = await db.collection("reminderapp").get();
-//   const reminderAppId = reminderAppDocuments.docs[0].data().id;
-//   const body = JSON.parse(request.body);
-//   const {hour} = body;
-//   const {docId} = body;
-
-//   // const reminderRes = await addReminder(
-//   //   reminderToken.value(),
-//   //   reminderAppId,
-//   //   hour
-//   // );
-//   //logger.info(`reminder agent res: ${reminderRes}`, {structuredData: true});
-
-//   // const chatId = body.chatId;
-//   // const bot = new TelegramBot(telegramToken.value());
-//   // bot.sendMessage(chatId, `Hey ${docId}`);
-//   // bot.sendMessage(chatId, `Hey ${chatId}`);
 
 //   logger.info(`result saved in doc: ${docId}`, {structuredData: true});
 
