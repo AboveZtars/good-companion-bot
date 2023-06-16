@@ -35,7 +35,7 @@ export const addReminder = async (
   const [hour, reminder] = input.split(",");
   logger.info(`reminder ${reminder}`, {structuredData: true});
   logger.info(`hour ${hour}`, {structuredData: true});
-  logger.info(`input ${hour}`, {structuredData: true});
+  logger.info(`input ${input}`, {structuredData: true});
 
   // Format Date
   const todayDate = new Date();
@@ -55,7 +55,7 @@ export const addReminder = async (
   logger.info(`Date ${todayDateFormatted}`, {structuredData: true});
 
   const raw = JSON.stringify({
-    title: "Good day reminder",
+    title: reminder,
     timezone: "America/Caracas",
     date_tz: todayDateFormatted,
     time_tz: hour,

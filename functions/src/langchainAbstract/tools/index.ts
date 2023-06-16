@@ -24,7 +24,8 @@ export class Tools {
     return [
       new DynamicTool({
         name: "addReminder",
-        description: `call this to set a reminder. input should be the hour and the reminder in a string separated by a comma. ex: "01:30, reminder"`,
+        description:
+          "call this to set a reminder. input should be the hour and the reminder in a string separated by a comma. ex: '01:30, reminder'",
         func: async (input) => {
           if (appId && docId) {
             addReminder(appId, docId, input);
