@@ -13,23 +13,28 @@ export class Tools {
    * @param {string} appId The id of the app.
    * @param {string} hour The hour of the daily reminder.
    * @param {string} docId The id of the document to save the reminder to.
+   * @param {string} chatId The id of the chat.
    * @return {DynamicTool[]} Array with all the tools.
    */
   reminderTools(
     prompt: string,
     appId?: string,
     hour?: string,
-    docId?: string
+    docId?: string,
+    chatId?: string
   ): DynamicTool[] {
     return [
       new DynamicTool({
         name: "addReminder",
         description:
-          "call this to set a reminder. input should be the hour and the reminder in a string separated by a comma. ex: '01:30, reminder'",
+          "Set a reminder for an specific hour in 24 hour notation.\n" +
+          "Input should be the hour and the reminder in a string separated by a comma.\n" +
+          "Example: '01:30, reminder'\n" +
+          "Do not use this tool with the same input",
         func: async (input) => {
-          if (appId && docId) {
-            addReminder(appId, docId, input);
-            return "Success";
+          if (appId && docId && chatId) {
+            addReminder(appId, docId, input, chatId);
+            return "";
           } else {
             return "Failed";
           }

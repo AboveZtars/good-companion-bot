@@ -30,9 +30,19 @@ export const createReminderApp = async () => {
 export const addReminder = async (
   appId: string,
   docId: string,
-  input: string
+  input: string,
+  chatId: string
 ) => {
   const [hour, reminder] = input.split(",");
+  const reminderDoc = await db
+    .collection("chats")
+    .doc(docId)
+    .collection("reminders")
+    .where("hour", "==", hour + ":00")
+    .get();
+  if (!reminderDoc.empty) {
+    return "There is already a reminder for that hour";
+  }
   logger.info(`reminder ${reminder}`, {structuredData: true});
   logger.info(`hour ${hour}`, {structuredData: true});
   logger.info(`input ${input}`, {structuredData: true});
@@ -60,6 +70,7 @@ export const addReminder = async (
     date_tz: todayDateFormatted,
     time_tz: hour,
     rrule: freq,
+    notes: `${docId},${chatId}`,
   });
 
   const requestOptions = {
@@ -77,10 +88,14 @@ export const addReminder = async (
   );
   const text = await resp.text();
   const reminderBody = JSON.parse(text);
-  await db
-    .collection("chats")
-    .doc(docId)
-    .set({reminder: reminderBody}, {merge: true});
+  await db.collection("chats").doc(docId).collection("reminders").add({
+    id: reminderBody.id,
+    application_id: reminderBody.application_id,
+    title: reminderBody.title,
+    time_tz: reminderBody.time_tz,
+    timezone: reminderBody.timezone,
+    rrule: reminderBody.rrule,
+  });
 
   return text;
 };

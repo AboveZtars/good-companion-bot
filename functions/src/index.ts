@@ -57,8 +57,11 @@ export const sendMessages = onRequest(async (request, response) => {
     hour,
     docId
   );
-
-  bot.sendMessage(chatId, responseChatGPT);
+  if (responseChatGPT === "Agent stopped due to max iterations.") {
+    bot.sendMessage(chatId, "Se estableció tu recordatorio");
+  } else {
+    bot.sendMessage(chatId, responseChatGPT);
+  }
 
   response.sendStatus(200);
 });
@@ -89,17 +92,23 @@ export const sendScheduledMessage = onRequest(async (request, response) => {
   logger.info("sendScheduledMessage called", {structuredData: true});
 
   const reminderData = request.body.reminders_notified[0];
+  const [docId, chatId] = reminderData.notes.split(",");
   // Create a Telegram bot
   const bot = new TelegramBot(telegramToken.value());
 
-  const chatDocument = await db
-    .collection("chats")
-    .where("reminder.id", "==", reminderData.id)
-    .get();
-  const docData = chatDocument.docs[0].data();
-  const chatId = docData.chatId;
-  const message = docData.message;
+  const prompt = `Create a friendly message for the user to remember about the task: 
+    ${reminderData.title},
+   use the language of the task to create the message.`;
 
-  bot.sendMessage(chatId, `${message}`);
+  const agent = new Agent();
+  const responseChatGPT = await agent.runDefaultAgent(
+    prompt,
+    chatId,
+    undefined,
+    undefined,
+    docId
+  );
+
+  bot.sendMessage(chatId, responseChatGPT);
   response.send(200);
 });
