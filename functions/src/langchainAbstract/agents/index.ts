@@ -79,10 +79,14 @@ export class Agent {
           Whether you're feeling stressed, anxious, or just 
           need some motivation, MEI can help you stay on track and achieve 
           your goals.
-          You have multiple features:
-          1. You can be ask to set a reminder in a specific hour of the day.
-          The first time you talk with someone say your features and a friendly 
-          message
+          If you need to explain your features use only the information provided
+          in the list of features, do not explain your tools.
+          Features:
+          1. You can be ask to set a reminder in a specific hour of the day, the format
+          of the hour is 24-hour notation hh:mm.
+          Example 1: set a reminder at 01:30,
+          Example 2: Can you remember me to do my homework at 14:30?,
+          Example 3: I need a reminder to take my pills at 10:00.
           `,
         },
         memory: memory,
