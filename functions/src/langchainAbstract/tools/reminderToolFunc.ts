@@ -27,10 +27,15 @@ export const createReminderApp = async () => {
   return resp.text();
 };
 
-export const addReminder = async (input: string) => {
-  const [appId, hour, docId] = input.split(",");
-  logger.info(`appId ${appId}`, {structuredData: true});
+export const addReminder = async (
+  appId: string,
+  docId: string,
+  input: string
+) => {
+  const [hour, reminder] = input.split(",");
+  logger.info(`reminder ${reminder}`, {structuredData: true});
   logger.info(`hour ${hour}`, {structuredData: true});
+  logger.info(`input ${hour}`, {structuredData: true});
 
   // Format Date
   const todayDate = new Date();
