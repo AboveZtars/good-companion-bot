@@ -28,7 +28,7 @@ export class Tools {
       new DynamicTool({
         name: "addReminder",
         description:
-          "Set a reminder for an specific hour in 24 hour notation.\n" +
+          "Set a reminder when asked to do so for an specific hour in 24 hour notation.\n" +
           "Input should be the hour and the reminder in a string separated by a comma.\n" +
           "Example: '01:30, reminder'\n" +
           "Do not use this tool with the same input",
