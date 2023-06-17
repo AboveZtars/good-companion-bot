@@ -1,5 +1,6 @@
-import {DynamicTool} from "langchain/tools";
+import {DynamicTool, SerpAPI} from "langchain/tools";
 import {addReminder} from "./reminderToolFunc";
+
 // import {answerHuman} from "./answerHumanToolFunc";
 
 /**
@@ -41,5 +42,9 @@ export class Tools {
         },
       }),
     ];
+  }
+
+  defaultTools() {
+    return [new SerpAPI()];
   }
 }
