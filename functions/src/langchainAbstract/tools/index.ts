@@ -1,13 +1,28 @@
 import {DynamicTool, SerpAPI} from "langchain/tools";
 import {addReminder} from "./reminderToolFunc";
+import {defineString} from "firebase-functions/params";
 
-// import {answerHuman} from "./answerHumanToolFunc";
+const serpApiKey = defineString("SERPAPI_API_KEY");
 
 /**
  * The tools to use.
  * @type {Tools}
  */
 export class Tools {
+  /**
+   * Create default tool
+   * @return {SerpAPI[]} Array with all the tools.
+   */
+  defaultTools(): SerpAPI[] {
+    return [
+      new SerpAPI(serpApiKey.value(), {
+        location: "Caracas,Capital District,Venezuela",
+        hl: "en",
+        gl: "us",
+      }),
+    ];
+  }
+
   /**
    * Create the tool set to add a reminder.
    * @param {string} prompt The prompt to use.
@@ -42,9 +57,5 @@ export class Tools {
         },
       }),
     ];
-  }
-
-  defaultTools() {
-    return [new SerpAPI()];
   }
 }

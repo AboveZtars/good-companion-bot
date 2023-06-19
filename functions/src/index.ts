@@ -7,7 +7,7 @@ import {getFirestore} from "firebase-admin/firestore";
 import firebaseApp from "./firestore/config";
 // My classes
 import {Agent} from "./langchainAbstract/agents";
-import {getDocIdByChatId, getReminderAppId} from "./firestore/actions";
+import {getDocIdByChatId /* getReminderAppId */} from "./firestore/actions";
 
 const telegramToken = defineString("TOKEN");
 // const reminderToken = defineString("REMINDERTOKEN");
@@ -22,7 +22,6 @@ export const sendMessages = onRequest(async (request, response) => {
   const bot = new TelegramBot(telegramToken.value());
 
   const docId = await getDocIdByChatId(chatId);
-  const appId = await getReminderAppId();
 
   if (!docId) {
     // Welcome algorithm
@@ -30,33 +29,10 @@ export const sendMessages = onRequest(async (request, response) => {
     const result = await db.collection("chats").add({chatId: chatId});
     logger.info(`Chat Id saved in doc: ${result.id}`, {structuredData: true});
   }
-
-  // TODO create agent to set the message: const greetingMessage = messageText.match(/message:\s*(.*)/g);
-  // TODO } else if (greetingMessage) {
-  // TODO  await db
-  // TODO    .collection("chats")
-  // TODO    .doc(docId)
-  // TODO    .set({message: greetingMessage}, {merge: true});
-  // TODO  bot.sendMessage(chatId, "Message set!! ^^");
-
-  const hourMatch: string[] | undefined = text.match(
-    /([0-1]?[0-9]|2[0-3]):[0-5][0-9]/g
-  );
-  const hour = hourMatch ? hourMatch[0] : undefined;
   const agent = new Agent();
 
-  logger.info(
-    `chatId: ${chatId}, appId: ${appId}, hour: ${hour}, docId: ${docId}`,
-    {structuredData: true}
-  );
+  const responseChatGPT = await agent.runDefaultAgent(text, chatId);
 
-  const responseChatGPT = await agent.runDefaultAgent(
-    text,
-    chatId,
-    appId,
-    hour,
-    docId
-  );
   if (responseChatGPT === "Agent stopped due to max iterations.") {
     bot.sendMessage(chatId, "Se estableció tu recordatorio");
   } else {
@@ -66,33 +42,11 @@ export const sendMessages = onRequest(async (request, response) => {
   response.sendStatus(200);
 });
 
-// export const createScheduleApp = onRequest(async (request, response) => {
-//   logger.info("createScheduleApp called", {structuredData: true});
-
-//   const reminderRes = await createReminderApp(reminderToken.value());
-//   const reminderBody = JSON.parse(reminderRes);
-//   const body = JSON.parse(request.body);
-//   const docId = body.docId;
-//   // const chatId = body.chatId;
-//   // const bot = new TelegramBot(telegramToken.value());
-//   // bot.sendMessage(chatId, `Hey ${docId}`);
-//   // bot.sendMessage(chatId, `Hey ${chatId}`);
-
-//   await db
-//     .collection("chats")
-//     .doc(docId)
-//     .set({reminderApp: reminderBody}, {merge: true});
-
-//   logger.info(`result saved in doc: ${docId}`, {structuredData: true});
-
-//   response.send(200);
-// });
-
 export const sendScheduledMessage = onRequest(async (request, response) => {
   logger.info("sendScheduledMessage called", {structuredData: true});
 
   const reminderData = request.body.reminders_notified[0];
-  const [docId, chatId] = reminderData.notes.split(",");
+  const [, /* docId */ chatId] = reminderData.notes.split(",");
   // Create a Telegram bot
   const bot = new TelegramBot(telegramToken.value());
 
@@ -101,13 +55,7 @@ export const sendScheduledMessage = onRequest(async (request, response) => {
    use the language of the task to create the message.`;
 
   const agent = new Agent();
-  const responseChatGPT = await agent.runDefaultAgent(
-    prompt,
-    chatId,
-    undefined,
-    undefined,
-    docId
-  );
+  const responseChatGPT = await agent.runDefaultAgent(prompt, chatId);
 
   bot.sendMessage(chatId, responseChatGPT);
   response.send(200);
